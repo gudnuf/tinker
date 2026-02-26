@@ -1,0 +1,14 @@
+# Deploy SSH private key — never commit
+keys/deploy
+# Public key (keys/deploy.pub) is safe to commit and needed by the flake
+
+# Nix build artifacts
+result
+result-*
+
+# Secrets
+*.env
+*.key
+*.pem
+secrets/
+secrets.nix
