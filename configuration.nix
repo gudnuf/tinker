@@ -34,10 +34,10 @@
         baseUrl = "https://api.ppq.ai";
         models = [
           {
-            id = "claude-sonnet-4-20250514";
-            name = "Claude Sonnet";
+            id = "claude-sonnet-4.6";
+            name = "Claude Sonnet 4.6";
             contextWindow = 200000;
-            maxTokens = 8192;
+            maxTokens = 16384;
           }
         ];
       };
