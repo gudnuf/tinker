@@ -9,11 +9,12 @@ Last updated: 2026-02-26
 - **Tagline:** "for the tinkerin' builders"
 - **Roadmap:** v1 Discord bot (join, get started) → v2 Showcase page (gallery of community builds)
 
-## Phase: DEPLOYED — MIGRATING TO US
+## Phase: DEPLOYED — US (Ashburn)
 
-Gateway deployed but ppq.ai geo-blocks EU requests (403 from Nürnberg).
-Migrating VPS from Hetzner Germany (nbg1) to Hetzner US (ash/Ashburn).
-Discord bot connected. ppq.ai balance is $0 — needs topup after migration.
+VPS migrated from Hetzner Germany (nbg1) to Hetzner US (ash/Ashburn).
+ppq.ai API access confirmed (HTTP 200, no more 403 geo-block).
+Gateway running, Discord connected, agent model: openai/claude-sonnet-4.6.
+ppq.ai balance is $0 — needs topup before LLM calls work.
 
 ## Active Lanes
 
@@ -22,7 +23,7 @@ Discord bot connected. ppq.ai balance is $0 — needs topup after migration.
 | 1: meta | Strategic coordination (this session) | active |
 | 2: lane1 | DX tooling, management scripts, Caddy landing page | done |
 | 3: lane2 | ppq.ai diagnosis — found geo-block, proposed US migration | done |
-| 4: lane3 | **VPS migration: Germany → US (Ashburn)** | active |
+| 4: lane3 | VPS migration: Germany → US (Ashburn) | done |
 | 5: lane4 | AGENTS.md v2 rewrite | done, committed |
 
 ## Completed Lanes (Genesis)
@@ -44,7 +45,7 @@ Discord bot connected. ppq.ai balance is $0 — needs topup after migration.
 - Model: Claude Sonnet 4.6 via ppq.ai (model ID: `claude-sonnet-4.6`)
 - Personality: hacker energy (terse, technical, irreverent, lowercase)
 - openclaw-nix gaps: assume they exist, write workarounds
-- VPS: Hetzner cpx32, IP 46.225.140.108, server name "tinker"
+- VPS: Hetzner cpx31 (Ashburn, VA), IP 178.156.161.158, server name "tinker"
 - Boot: GRUB + BIOS boot partition (Hetzner resets UEFI NVRAM on reboot)
 - Networking: systemd-networkd, DHCP on en*/eth*
 - GitHub: gudnuf/tinker, Pages enabled from docs/ on main
@@ -101,7 +102,7 @@ Tested all endpoints against live API. Results:
 ## Pre-Deploy Checklist (human)
 
 - [x] Set HCLOUD_TOKEN
-- [x] Run provision.sh — VPS created, IP 46.225.140.108
+- [x] Run provision.sh — VPS created, IP 178.156.161.158
 - [x] GitHub repo created (gudnuf/tinker), Pages enabled
 - [x] Landing page v1 live (pending DNS)
 - [x] README committed
@@ -115,7 +116,7 @@ Tested all endpoints against live API. Results:
 - [x] Create /run/secrets/openclaw.env on VPS (secrets deployed)
 - [x] Deploy: gateway running, Discord connected
 - [ ] Fix script bugs (topup.sh 201 handling, field names)
-- [ ] DNS: point tinker.builders + *.tinker.builders → 46.225.140.108 (single A record + wildcard)
+- [ ] DNS: point tinker.builders + *.tinker.builders → 178.156.161.158 (single A record + wildcard)
 - [ ] Add Caddy virtualHost for tinker.builders (landing page) to configuration.nix
 - [ ] Add Caddy on-demand TLS for *.tinker.builders (app subdomains)
 - [ ] Add passwordless sudo rule for openclaw user → nixos-rebuild

@@ -121,7 +121,6 @@
           "auth": { "mode": "token" }
         },
         "models": {
-          "default": "openai/claude-sonnet-4.6",
           "providers": {
             "openai": {
               "api": "openai-completions",
@@ -135,8 +134,12 @@
             }
           }
         },
-        "agent": {
-          "model": "openai/claude-sonnet-4.6"
+        "agents": {
+          "defaults": {
+            "model": {
+              "primary": "openai/claude-sonnet-4.6"
+            }
+          }
         },
         "channels": {
           "discord": { "enabled": true }
@@ -145,8 +148,7 @@
           "entries": {
             "discord": { "enabled": true }
           }
-        },
-        "groupPolicy": "open"
+        }
       }
       OCEOF
         chmod 600 /var/lib/openclaw/.openclaw/openclaw.json
@@ -155,14 +157,10 @@
   };
 
   # --- Caddy: on-demand TLS for app subdomains ---
-  # Apps deploy to {name}.tinker.builders. Caddy auto-provisions TLS certs
-  # for new subdomains via Let's Encrypt on-demand TLS.
-  services.caddy.globalConfig = lib.mkAfter ''
-    on_demand_tls {
-      interval 2m
-      burst 5
-    }
-  '';
+  # Apps deploy to {name}.tinker.builders. Each app module adds its own
+  # virtualHost with reverse_proxy. Caddy auto-provisions TLS certs.
+  # on_demand_tls global config deferred — not needed until apps deploy,
+  # and the interval/burst options were removed in current Caddy.
 
   # --- Landing Page (Caddy static files) ---
   # Override the openclaw-nix reverse proxy virtualHost — the gateway
