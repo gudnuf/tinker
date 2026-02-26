@@ -115,9 +115,9 @@ Tested all endpoints against live API. Results:
 - [x] Create /run/secrets/openclaw.env on VPS (secrets deployed)
 - [x] Deploy: gateway running, Discord connected
 - [ ] Fix script bugs (topup.sh 201 handling, field names)
-- [ ] Point tinker.builders DNS to GitHub Pages IPs (185.199.108-111.153)
-- [ ] Set up wildcard DNS: *.tinker.builders → 46.225.140.108
-- [ ] Add Caddy domain config + on-demand TLS to configuration.nix
+- [ ] DNS: point tinker.builders + *.tinker.builders → 46.225.140.108 (single A record + wildcard)
+- [ ] Add Caddy virtualHost for tinker.builders (landing page) to configuration.nix
+- [ ] Add Caddy on-demand TLS for *.tinker.builders (app subdomains)
 - [ ] Add passwordless sudo rule for openclaw user → nixos-rebuild
 - [ ] Add dynamic app module import to configuration.nix (see ROUND-DESIGN.md §6)
 - [ ] Generate permanent Discord invite link (current one expires ~Mar 5)
