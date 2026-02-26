@@ -1,13 +1,8 @@
-Alright, no file tools this session — here's the `CLAUDE.md`:
-
----
-
-```markdown
-# CLAUDE.md — open-builder
+# CLAUDE.md — open-builder (Tinker)
 
 ## What This Is
 
-open-builder is a Discord bot powered by OpenClaw that lets a group of people
+Tinker is a Discord bot powered by OpenClaw that lets a group of people
 collaboratively build software in real time. Anyone in the channel can propose
 ideas, vote on what to build, and guide the AI agent as it writes code live.
 
@@ -15,8 +10,11 @@ The bot is funded by Bitcoin Lightning micropayments via ppq.ai — anyone can
 send sats to top up the shared credit pool that pays for LLM inference.
 
 The first use case is a developer meetup demo, but the project is designed to
-be general-purpose: any community can spin up an open-builder instance and
-use it to build in the open together.
+be general-purpose: any community can spin up a Tinker instance and use it to
+build in the open together.
+
+**Brand:** Tinker / tinker.builders / "for the tinkerin' builders"
+**Repo:** gudnuf/tinker on GitHub
 
 ## Architecture
 
@@ -41,7 +39,82 @@ ppq.ai (OpenAI-compatible proxy, pay-per-query)
 - **NixOS** is the deployment target. The entire system is declared in a
   single flake. `nixos-rebuild switch` deploys everything.
 
+## How We Build This Project
+
+This project uses a **meta-agent workflow** — one agent holds the strategic
+context while lane agents do scoped implementation work. The human operator
+bridges them via tmux.
+
+### Roles
+
+- **Human (william):** Final decisions, domain knowledge (OpenClaw, ppq.ai,
+  Discord), secret provisioning, VPS setup, Discord app creation. Operates
+  the tmux workspace — launches agents, relays outputs, makes allocation calls.
+- **Meta-agent:** Coordinates lanes, drafts prompts for lane agents, resolves
+  cross-cutting issues, maintains STATE.md. Never writes implementation code.
+  Flies high — the moment it starts debugging a specific file, it has abandoned
+  its post.
+- **Lane agents:** Execute scoped work in tmux panes. Each gets a narrow task,
+  clear acceptance criteria, and boundaries on what not to touch.
+
+### Tmux Workspace
+
+```
+Session: open-builder
+
+  Window 1: meta    — meta-agent (Claude Code). Strategic coordination.
+  Window 2: lane1   — lane agent or idle shell
+  Window 3: lane2   — lane agent or idle shell
+  Window 4: lane3   — lane agent or idle shell
+  Window 5: lane4   — lane agent or idle shell
+```
+
+Lane agents are launched by the human pasting prompts drafted by the meta-agent.
+Each lane gets its own Claude Code instance with a focused prompt. Lanes don't
+talk to each other — they communicate through files and the meta-agent.
+
+### Process Files
+
+| File | Owner | Purpose |
+|------|-------|---------|
+| STATE.md | Meta-agent | Living dashboard. Current phase, lane status, decisions, blockers, checklists. |
+| PROCESS.md | Meta-agent | Coordination rules. Roles, lane scoping, file ownership, decision log. |
+| DISCORD-DESIGN.md | Meta-agent | Discord server structure, channel layout, demo plan. |
+| CLAUDE.md | Human | This file. Project context for any agent that opens the repo. |
+
+**STATE.md is the source of truth.** Any agent can read it. Only the meta-agent
+updates it. If you need to know what's happening, read STATE.md first.
+
+### Coordination Rules
+
+1. **Lanes don't edit each other's files.** Cross-cutting changes go through
+   the meta-agent (who drafts the change, human executes).
+2. **State lives in STATE.md.** Updated after each significant change.
+3. **Secrets never go in the repo.** Placeholder paths only.
+4. **Prompts are artifacts.** The meta-agent drafts lane prompts as text blocks
+   the human can paste. This is the primary coordination mechanism.
+
+### Workflow Pattern
+
+```
+1. Meta-agent reads state, identifies what needs doing
+2. Meta-agent drafts a prompt for a lane agent
+3. Human pastes prompt into an idle lane
+4. Lane agent does scoped work, commits (or leaves changes for review)
+5. Meta-agent reviews outputs, updates STATE.md
+6. Repeat
+```
+
+For brainstorming / design work, the meta-agent drafts exploration prompts
+that produce design documents rather than code. These get reviewed and folded
+into the project docs.
+
 ## How The Bot Works
+
+> Note: the phase system is being redesigned. The description below reflects
+> the v1 design in documents/AGENTS.md. A v2 design is in progress that adds
+> a 10-minute structured planning phase, cost estimation gates, subagent
+> architecture, and Nix-native deployment to subdomains of tinker.builders.
 
 The bot operates in phases, controlled by bang commands:
 
@@ -78,12 +151,19 @@ The phase system gives it a state machine: collect → synthesize → build → 
 OpenClaw's built-in message queue serializes concurrent messages, so nothing
 gets dropped.
 
+**Why a meta-agent workflow for building the project itself?**
+The project has multiple parallel concerns (infra, agent docs, scripts, deploy,
+design) that benefit from focused agents. A single agent trying to hold all of
+it loses context. The meta-agent keeps the strategic view while lane agents
+go deep on specific tasks.
+
 ## Project Structure
 
 ```
 open-builder/
 ├── flake.nix                 # nix flake — pulls openclaw-nix, defines system
 ├── configuration.nix         # NixOS config — openclaw service, firewall, ssh
+├── disko-config.nix          # disk partitioning for nixos-anywhere
 ├── modules/
 │   └── open-builder.nix      # activation scripts for docs/skills/scripts
 ├── documents/
@@ -96,10 +176,16 @@ open-builder/
 ├── scripts/
 │   ├── topup.sh              # calls ppq.ai topup API
 │   ├── check-balance.sh      # calls ppq.ai balance API
-│   └── deploy.sh             # nixos-rebuild + post-deploy config
+│   ├── deploy.sh             # nixos-rebuild + post-deploy config
+│   └── provision.sh          # Hetzner VPS provisioning via hcloud
 ├── config/
 │   └── openclaw.json         # reference config template
+├── docs/
+│   └── index.html            # landing page (GitHub Pages at tinker.builders)
 ├── CLAUDE.md                 # this file
+├── STATE.md                  # meta-agent state dashboard
+├── PROCESS.md                # coordination rules and decisions
+├── DISCORD-DESIGN.md         # discord server design doc
 └── README.md
 ```
 
@@ -129,6 +215,10 @@ models array with id/name/contextWindow/maxTokens.
 executable, and reference it in TOOLS.md so the agent knows it exists. Wire
 it into modules/open-builder.nix so it gets copied on deploy.
 
+**If working on project coordination** → read STATE.md first. If you're the
+meta-agent, update it after significant changes. If you're a lane agent,
+read it but don't modify it.
+
 ## Things To Be Careful About
 
 - **Secrets never go in the repo.** API keys and bot tokens live in
@@ -143,6 +233,9 @@ it into modules/open-builder.nix so it gets copied on deploy.
 - **openclaw-nix is still stabilizing.** Check the workarounds gist
   (gudnuf/8fe65ca0e49087105cb86543dc8f0799) if you hit config issues,
   especially around gateway.mode, gateway.auth.token, or missing templates.
+- **Git signing requires hardware key.** Claude Code can't trigger the
+  hardware key prompt. Commits from agents use `-c commit.gpgsign=false`.
+- **No Co-Authored-By footers.** Keep commits clean per global config.
 
 ## Useful Commands
 
@@ -164,5 +257,4 @@ ssh root@your-vps "openclaw gateway restart"
 
 # check ppq.ai balance
 ssh root@your-vps "bash /home/openclaw/scripts/check-balance.sh"
-```
 ```

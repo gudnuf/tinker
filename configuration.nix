@@ -4,7 +4,7 @@
   # --- OpenClaw Service ---
   services.openclaw = {
     enable = true;
-    domain = "agents.example.com"; # TODO: replace with actual domain
+    domain = "tinker.builders";
 
     # Enable Discord plugin
     discord = {
@@ -79,11 +79,20 @@
   # --- Networking ---
   networking = {
     hostName = "open-builder";
+    useNetworkd = true;
     firewall = {
       enable = true;
       # openclaw-nix opens 80/443 via openFirewall but does NOT open SSH
       allowedTCPPorts = [ 22 80 443 ];
     };
+  };
+
+  # DHCP on all physical ethernet interfaces (Hetzner Cloud uses eth0)
+  systemd.network.networks."10-wan" = {
+    matchConfig.Name = "eth* en*";
+    networkConfig.DHCP = "ipv4";
+    dhcpV4Config.UseDNS = true;
+    linkConfig.RequiredForOnline = "routable";
   };
 
   # --- SSH ---
@@ -104,11 +113,20 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # --- Boot & Filesystem ---
-  # Disk layout and boot configuration are managed by disko (see disko-config.nix).
-  # nixos-anywhere uses disko during provisioning to partition, format, and mount.
-  # Do NOT add manual boot.loader or fileSystems entries here.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  # Disk layout managed by disko (see disko-config.nix).
+  # GRUB with BIOS boot partition — reliable on Hetzner Cloud where
+  # UEFI NVRAM resets on reboot (systemd-boot doesn't persist in boot order).
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    efiInstallAsRemovable = true;
+    device = "/dev/sda";
+  };
+
+  # Hetzner Cloud runs KVM/QEMU — virtio modules needed in initrd
+  boot.initrd.availableKernelModules = [
+    "virtio_pci" "virtio_blk" "virtio_scsi" "virtio_net" "ahci"
+  ];
 
   # --- System ---
   system.stateVersion = "24.11";

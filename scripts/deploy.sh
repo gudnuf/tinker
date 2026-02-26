@@ -4,9 +4,11 @@ set -euo pipefail
 # deploy.sh — deploy open-builder via deploy-rs and verify
 # Dependencies: deploy-rs (deploy), ssh, curl, jq (on remote)
 # Usage: deploy.sh [host]
-#   host defaults to open-builder.example.com
+#   host defaults to 46.225.140.108
 
-HOST="${1:-open-builder.example.com}"
+HOST="${1:-46.225.140.108}"
+SSH_KEY="keys/deploy"
+SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no"
 
 echo "deploying open-builder to $HOST..."
 deploy .#open-builder
@@ -17,17 +19,17 @@ echo "deploy complete. verifying..."
 # Verify openclaw service is running
 echo ""
 echo "--- service status ---"
-ssh "root@${HOST}" "systemctl is-active openclaw && echo 'openclaw: running' || echo 'openclaw: NOT running'"
+ssh $SSH_OPTS "root@${HOST}" "systemctl is-active openclaw && echo 'openclaw: running' || echo 'openclaw: NOT running'"
 
 # Check secrets env file
 echo ""
 echo "--- secrets ---"
-ssh "root@${HOST}" "test -f /run/secrets/openclaw.env && echo '/run/secrets/openclaw.env: present' || echo '/run/secrets/openclaw.env: MISSING'"
+ssh $SSH_OPTS "root@${HOST}" "test -f /run/secrets/openclaw.env && echo '/run/secrets/openclaw.env: present' || echo '/run/secrets/openclaw.env: MISSING'"
 
 # Check balance
 echo ""
 echo "--- ppq.ai balance ---"
-ssh "root@${HOST}" "bash /home/openclaw/scripts/check-balance.sh" || echo "warning: balance check failed"
+ssh $SSH_OPTS "root@${HOST}" "bash /home/openclaw/scripts/check-balance.sh" || echo "warning: balance check failed"
 
 echo ""
 echo "deploy verified."

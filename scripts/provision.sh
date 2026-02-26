@@ -16,7 +16,7 @@ set -euo pipefail
 
 LOCATION="${1:-nbg1}"
 SERVER_NAME="open-builder"
-SERVER_TYPE="cx22"
+SERVER_TYPE="cpx32"
 IMAGE="ubuntu-24.04"
 SSH_KEY_NAME="open-builder-deploy"
 SSH_PUB_KEY="keys/deploy.pub"
@@ -25,7 +25,7 @@ SSH_PUB_KEY="keys/deploy.pub"
 
 if [ -z "${HCLOUD_TOKEN:-}" ]; then
   echo "error: HCLOUD_TOKEN is not set"
-  echo "export it from your shell or source infra/hetzner.env"
+  echo "export it: export \$(cat infra/hetzner.env | xargs)"
   exit 1
 fi
 
@@ -116,7 +116,7 @@ echo ""
 
 nixos-anywhere \
   --flake ".#open-builder" \
-  --ssh-option "-i keys/deploy" \
+  -i keys/deploy \
   --ssh-option "-o StrictHostKeyChecking=no" \
   --ssh-option "-o UserKnownHostsFile=/dev/null" \
   "root@${SERVER_IP}"
@@ -135,9 +135,5 @@ echo "     DISCORD_BOT_TOKEN=<your Discord bot token>"
 echo "     EOF'"
 echo "     ssh -i keys/deploy root@${SERVER_IP} 'chmod 600 /run/secrets/openclaw.env'"
 echo ""
-echo "  2. Update placeholder hostnames:"
-echo "     - flake.nix: replace open-builder.example.com with $SERVER_IP"
-echo "     - configuration.nix: replace agents.example.com with your domain"
-echo ""
-echo "  3. Deploy the full config:"
+echo "  2. Deploy the full config:"
 echo "     bash scripts/deploy.sh $SERVER_IP"

@@ -34,7 +34,7 @@ response="$(curl -s -w "\n%{http_code}" -X POST "$CREATE_URL" \
 http_code="$(echo "$response" | tail -1)"
 body="$(echo "$response" | sed '$d')"
 
-if [[ "$http_code" -ne 200 ]]; then
+if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
   echo "error: failed to create invoice (HTTP $http_code)" >&2
   echo "$body" >&2
   exit 1
@@ -47,7 +47,8 @@ if ! echo "$body" | jq empty 2>/dev/null; then
 fi
 
 invoice_id="$(echo "$body" | jq -r '.invoice_id // .id')"
-payment_request="$(echo "$body" | jq -r '.payment_request // .invoice // .bolt11')"
+payment_request="$(echo "$body" | jq -r '.payment_request // .invoice // .bolt11 // .lightning_invoice')"
+checkout_url="$(echo "$body" | jq -r '.checkout_url // empty' 2>/dev/null || true)"
 
 if [[ "$invoice_id" == "null" || -z "$invoice_id" ]]; then
   echo "error: no invoice ID in response" >&2
@@ -58,6 +59,9 @@ fi
 echo "Lightning invoice created"
 echo "  invoice_id: $invoice_id"
 echo "  amount: $AMOUNT $CURRENCY"
+if [[ -n "$checkout_url" ]]; then
+  echo "  checkout: $checkout_url"
+fi
 echo ""
 echo "payment_request:"
 echo "$payment_request"

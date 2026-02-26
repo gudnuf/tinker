@@ -38,11 +38,6 @@ if ! echo "$body" | jq empty 2>/dev/null; then
   exit 1
 fi
 
-# Extract balance fields — adapt to actual API response shape
-usd="$(echo "$body" | jq -r '.balance_usd // .balance // .credits // "unknown"')"
-sats="$(echo "$body" | jq -r '.balance_sats // empty' 2>/dev/null || true)"
+balance="$(echo "$body" | jq -r '.balance // "unknown"')"
 
-echo "ppq.ai balance: \$${usd} USD"
-if [[ -n "$sats" ]]; then
-  echo "              ≈ ${sats} sats"
-fi
+echo "ppq.ai balance: $balance credits"

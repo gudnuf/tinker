@@ -7,9 +7,9 @@
       "api": "openai",
       "models": [
         {
-          "id": "claude-3.5-sonnet",
-          "name": "Claude Sonnet (via ppq.ai)",
-          "contextWindow": 200000,
+          "id": "claude-sonnet-4.6",
+          "name": "Claude Sonnet 4.6 (via ppq.ai)",
+          "contextWindow": 1000000,
           "maxTokens": 8192
         }
       ]

@@ -36,7 +36,7 @@
 
       deploy = {
         nodes.open-builder = {
-          hostname = "open-builder.example.com"; # TODO: replace with actual VPS IP/hostname
+          hostname = "46.225.140.108";
           sshUser = "root";
           autoRollback = true;
           magicRollback = true;
