@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "name": "ppq",
+      "baseUrl": "https://api.ppq.ai",
+      "apiKey": "${OPENAI_API_KEY}",
+      "api": "openai",
+      "models": [
+        {
+          "id": "claude-3.5-sonnet",
+          "name": "Claude Sonnet (via ppq.ai)",
+          "contextWindow": 200000,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  ]
+}
