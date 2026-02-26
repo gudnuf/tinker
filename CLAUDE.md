@@ -39,9 +39,12 @@ ppq.ai (OpenAI-compatible proxy, pay-per-query)
 - **NixOS** is the deployment target. The entire system is declared in a
   single flake. `nixos-rebuild switch` deploys everything.
 - **Caddy** serves the landing page (static files from /var/www/tinker/) on
-  tinker.builders. DNS: both `tinker.builders` and `*.tinker.builders` point
-  to the VPS IP (46.225.140.108). The landing page is deployed from `docs/`
-  via rsync, not GitHub Pages.
+  tinker.builders with on-demand TLS for app subdomains (`*.tinker.builders`).
+  DNS points to the VPS (IP configured via `TINKER_VPS_IP` env var). The
+  landing page is deployed from `docs/` via rsync.
+- **Credit bot** is a lightweight sidecar service (Node.js) that handles
+  `!topup` and `!balance` commands without LLM calls. Lives in
+  `services/credit-bot/`, deployed as a NixOS module (`modules/credit-bot.nix`).
 
 ## How We Build This Project
 
@@ -115,22 +118,36 @@ into the project docs.
 
 ## How The Bot Works
 
-> Note: the phase system is being redesigned. The description below reflects
-> the v1 design in documents/AGENTS.md. A v2 design is in progress that adds
-> a 10-minute structured planning phase, cost estimation gates, subagent
-> architecture, and Nix-native deployment to subdomains of tinker.builders.
+The bot operates as a phase state machine. Two bang commands control sessions:
+`!start` begins a round, `!wrap` ends it. Everything else auto-advances.
 
-The bot operates in phases, controlled by bang commands:
+```
+IDLE ──!start──> PLAN (10 min, hard-gated)
+                   ├── PITCH     (0:00 - 4:00)  collect ideas
+                   ├── SYNTHESIZE (4:00 - 6:00)  merge into 3 proposals
+                   ├── VOTE      (6:00 - 8:00)  emoji reactions
+                   └── SPEC      (8:00 - 10:00) write build plan
+              ──auto──> FUND (cost estimate + balance gate)
+              ──auto──> BUILD (subagent execution, step by step)
+              ──auto──> DEPLOY (write NixOS module, rebuild, go live)
+              ──auto──> ITERATE (feedback loops, redeploy)
+              ──!wrap──> WRAP (summary, showcase, return to IDLE)
+```
 
-1. **IDLE** — default. Responds to questions, banter, !topup, !balance.
-2. **IDEATION** (!start) — collects ideas from everyone for ~2 minutes.
-3. **SYNTHESIS** (!close-ideas) — combines ideas into 3 proposals, group votes.
-4. **BUILD** (!pick) — scaffolds the winning project, posts progress.
-5. **ITERATE** — collects feedback in ~90s windows, builds what the group wants.
-6. **WRAP** (!wrap) — summarizes what was built and who contributed.
+- **PLAN** is a 10-minute structured phase with four sub-phases. The bot
+  runs the clock — no commands needed to advance between sub-phases.
+- **FUND** estimates cost ($0.05/step × 1.5 buffer) and checks ppq.ai
+  balance. Building hard-blocks on insufficient funds.
+- **BUILD** uses subagent calls (stateless curl to ppq.ai) for code
+  generation. The orchestrator delegates — it doesn't write code in-context.
+- **DEPLOY** writes a NixOS app module to `modules/apps/{name}.nix`,
+  commits, and runs `nixos-rebuild switch`. App goes live at
+  `{name}.tinker.builders`.
+- **ITERATE** runs 90-second feedback windows with redeploys between them.
 
-The phase logic lives in documents/AGENTS.md which is the system prompt
-OpenClaw injects into every agent session. The personality lives in SOUL.md.
+The phase logic lives in documents/AGENTS.md (the system prompt OpenClaw
+injects into every agent session). The v2 design doc is
+documents/ROUND-DESIGN.md. The personality lives in SOUL.md.
 
 ## Key Design Decisions
 
@@ -151,9 +168,9 @@ sandboxing, auto TLS, firewall, dedicated user).
 
 **Why phases instead of freeform chat?**
 With 10-30 people talking at once, the bot needs structure to avoid chaos.
-The phase system gives it a state machine: collect → synthesize → build → repeat.
-OpenClaw's built-in message queue serializes concurrent messages, so nothing
-gets dropped.
+The phase system gives it a state machine: plan → fund → build → deploy →
+iterate. OpenClaw's built-in message queue serializes concurrent messages,
+so nothing gets dropped.
 
 **Why a meta-agent workflow for building the project itself?**
 The project has multiple parallel concerns (infra, agent docs, scripts, deploy,
@@ -169,9 +186,17 @@ open-builder/
 ├── configuration.nix         # NixOS config — openclaw service, firewall, ssh
 ├── disko-config.nix          # disk partitioning for nixos-anywhere
 ├── modules/
-│   └── open-builder.nix      # activation scripts for docs/skills/scripts
+│   ├── tinker.nix            # activation scripts for docs/skills/scripts
+│   ├── credit-bot.nix        # NixOS module for credit bot sidecar
+│   └── apps/                 # bot writes app modules here (auto-imported)
+│       └── _template.nix.example
+├── services/
+│   └── credit-bot/           # credit bot sidecar (handles !topup, !balance)
+│       ├── index.js
+│       └── package.json
 ├── documents/
-│   ├── AGENTS.md             # agent behavior — phases, commands, rules
+│   ├── AGENTS.md             # agent behavior — v2 phases, commands, rules
+│   ├── ROUND-DESIGN.md       # v2 round design doc (canonical reference)
 │   ├── SOUL.md               # personality — voice, tone, principles
 │   └── TOOLS.md              # tool-specific notes for the agent
 ├── skills/
@@ -192,7 +217,7 @@ open-builder/
 ├── config/
 │   └── openclaw.json         # reference config template
 ├── docs/
-│   └── index.html            # landing page (GitHub Pages at tinker.builders)
+│   └── index.html            # landing page (served via Caddy on VPS)
 ├── CLAUDE.md                 # this file
 ├── STATE.md                  # meta-agent state dashboard
 ├── PROCESS.md                # coordination rules and decisions
@@ -214,7 +239,7 @@ Follow the topup skill as a template. Skills are self-contained: a SKILL.md
 with YAML frontmatter declaring the name, description, and required tools,
 plus instructions the agent reads to know how to use it.
 
-**If changing infrastructure** → edit configuration.nix or modules/open-builder.nix.
+**If changing infrastructure** → edit configuration.nix or modules/tinker.nix.
 The flake.nix should rarely change unless swapping inputs.
 
 **If changing the model or provider** → edit config/openclaw.json or the
@@ -224,7 +249,7 @@ models array with id/name/contextWindow/maxTokens.
 
 **If adding a new script the agent can call** → put it in scripts/, make it
 executable, and reference it in TOOLS.md so the agent knows it exists. Wire
-it into modules/open-builder.nix so it gets copied on deploy.
+it into modules/tinker.nix so it gets copied on deploy.
 
 **If working on project coordination** → read STATE.md first. If you're the
 meta-agent, update it after significant changes. If you're a lane agent,
@@ -233,7 +258,7 @@ read it but don't modify it.
 ## Things To Be Careful About
 
 - **Secrets never go in the repo.** API keys and bot tokens live in
-  /run/secrets/ on the VPS. The deploy script reads them from there.
+  /run/secrets/openclaw.env on the VPS (injected via systemd EnvironmentFile).
 - **The agent has exec access.** It can run shell commands inside the systemd
   sandbox. Keep its working directory scoped to /home/openclaw/projects/.
   AGENTS.md tells it to never run destructive commands outside that path.
@@ -261,5 +286,6 @@ Enter the dev shell first: `nix develop` (provides all tools + scripts on PATH).
 | `tinker-config` | Read/set openclaw config (`tinker-config`, `tinker-config set <path> <val>`, `tinker-config doctor`) |
 | `tinker-balance` | Check ppq.ai credit balance via VPS |
 
-All commands use `keys/deploy` for SSH and default to VPS IP `46.225.140.108`.
-Override the IP with `TINKER_VPS_IP` env var.
+All commands use `keys/deploy` for SSH. VPS IP is set via `TINKER_VPS_IP`
+env var (scripts have a hardcoded default — check the script source for the
+current value).
