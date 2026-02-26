@@ -40,8 +40,9 @@ async function createTopup(amount) {
     },
     body: JSON.stringify({ amount }),
   });
-  if (!res.ok) throw new Error(`Topup API returned ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Topup API returned ${res.status}`);
+  return data;
 }
 
 client.on("messageCreate", async (msg) => {
