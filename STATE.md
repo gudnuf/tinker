@@ -9,11 +9,11 @@ Last updated: 2026-02-26
 - **Tagline:** "for the tinkerin' builders"
 - **Roadmap:** v1 Discord bot (join, get started) → v2 Showcase page (gallery of community builds)
 
-## Phase: DEPLOYING + REDESIGNING
+## Phase: DEPLOYED — BOT ONLINE
 
-VPS provisioned. NixOS boot still unvalidated (lane4 working, near context limit).
-In parallel: v2 round design complete, scripts validated against live API,
-landing page being rewritten.
+Gateway running on VPS (46.225.140.108). Discord bot connected (@Tinker).
+Secrets provisioned. Landing page v2 committed. ppq.ai balance is $0 — needs
+topup before the bot can respond to messages.
 
 ## Active Lanes
 
@@ -44,7 +44,7 @@ landing page being rewritten.
 - Model: Claude Sonnet 4.6 via ppq.ai (model ID: `claude-sonnet-4.6`)
 - Personality: hacker energy (terse, technical, irreverent, lowercase)
 - openclaw-nix gaps: assume they exist, write workarounds
-- VPS: Hetzner cpx32, IP 46.225.140.108, server name "open-builder"
+- VPS: Hetzner cpx32, IP 46.225.140.108, server name "tinker"
 - Boot: GRUB + BIOS boot partition (Hetzner resets UEFI NVRAM on reboot)
 - Networking: systemd-networkd, DHCP on en*/eth*
 - GitHub: gudnuf/tinker, Pages enabled from docs/ on main
@@ -95,8 +95,8 @@ Tested all endpoints against live API. Results:
 | ppq.ai API key | **obtained** | secrets/ppq.env (gitignored) |
 | Discord bot intents | **configured** | Message Content Intent ON, others off |
 | Discord invite link | **created** | https://discord.gg/WWPGb5xW (expires ~2026-03-05) |
-| Deploy SSH key | not yet generated | — |
-| Combined VPS env file | not yet created | /run/secrets/openclaw.env on VPS |
+| Deploy SSH key | **deployed** | keys/deploy (gitignored), pub key in keys/deploy.pub |
+| Combined VPS env file | **deployed** | /run/secrets/openclaw.env on VPS (root:root 0600) |
 
 ## Pre-Deploy Checklist (human)
 
@@ -109,20 +109,32 @@ Tested all endpoints against live API. Results:
 - [x] Configure bot intents (Message Content ON)
 - [x] Get ppq.ai API key
 - [x] Validate ppq.ai API endpoints (spike complete)
-- [ ] **BLOCKED: NixOS boot** — lane4 debugging, near context limit
-- [ ] Fix script bugs (lane2 in progress)
-- [ ] Landing page v2 (lane3 in progress)
-- [ ] Replace placeholder hostnames in config
+- [x] NixOS boot — resolved (GRUB + BIOS boot partition)
+- [x] Landing page v2 committed
+- [x] Replace placeholder hostnames in config — renamed to tinker throughout
+- [x] Create /run/secrets/openclaw.env on VPS (secrets deployed)
+- [x] Deploy: gateway running, Discord connected
+- [ ] Fix script bugs (topup.sh 201 handling, field names)
 - [ ] Point tinker.builders DNS to GitHub Pages IPs (185.199.108-111.153)
 - [ ] Set up wildcard DNS: *.tinker.builders → 46.225.140.108
-- [ ] Create /run/secrets/openclaw.env on VPS (combine secrets/discord.env + secrets/ppq.env)
 - [ ] Add Caddy domain config + on-demand TLS to configuration.nix
 - [ ] Add passwordless sudo rule for openclaw user → nixos-rebuild
 - [ ] Add dynamic app module import to configuration.nix (see ROUND-DESIGN.md §6)
-- [ ] Deploy: bash scripts/deploy.sh 46.225.140.108
 - [ ] Generate permanent Discord invite link (current one expires ~Mar 5)
 - [ ] Top up ppq.ai credits (balance is $0)
 - [ ] Rewrite AGENTS.md to match ROUND-DESIGN.md v2 phases
+
+## Validated (Deploy — openclaw-nix workarounds)
+
+| Issue | Workaround |
+|-------|------------|
+| `--config` flag not supported by openclaw | Override ExecStart, use `gateway run` without --config |
+| `gateway start` calls systemctl --user (fails in system service) | Use `gateway run` (foreground mode) |
+| Systemd sandbox crashes gateway (fchown in uv__fs_copyfile) | Disable ProtectSystem, ProtectHome, PrivateTmp, etc. via mkForce |
+| os.networkInterfaces() needs AF_NETLINK | Add AF_NETLINK to RestrictAddressFamilies |
+| Config schema mismatch (models array vs providers object) | Seed correct openclaw.json via preStart, guard with if-not-exists |
+| deploy-rs cross-arch (aarch64-darwin → x86_64-linux) | rsync + remote nixos-rebuild instead of deploy-rs |
+| VPS hostname still shows "open-builder" in logs | Needs redeploy with hostName = "tinker" (cosmetic) |
 
 ## Open Items (non-blocking)
 
