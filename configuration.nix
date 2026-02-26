@@ -1,6 +1,19 @@
 { config, pkgs, lib, ... }:
 
 {
+  # --- Dynamic App Module Imports ---
+  # Auto-import all .nix files from modules/apps/ — the bot drops app modules
+  # here and runs nixos-rebuild to deploy them.
+  imports = let
+    appsDir = ./modules/apps;
+  in
+    if builtins.pathExists appsDir then
+      map (f: appsDir + "/${f}")
+        (builtins.attrNames
+          (lib.filterAttrs (n: v: v == "regular" && lib.hasSuffix ".nix" n)
+            (builtins.readDir appsDir)))
+    else [];
+
   # --- OpenClaw Service ---
   services.openclaw = {
     enable = true;
@@ -141,6 +154,16 @@
     '';
   };
 
+  # --- Caddy: on-demand TLS for app subdomains ---
+  # Apps deploy to {name}.tinker.builders. Caddy auto-provisions TLS certs
+  # for new subdomains via Let's Encrypt on-demand TLS.
+  services.caddy.globalConfig = lib.mkAfter ''
+    on_demand_tls {
+      interval 2m
+      burst 5
+    }
+  '';
+
   # --- Landing Page (Caddy static files) ---
   # Override the openclaw-nix reverse proxy virtualHost — the gateway
   # only needs local access (Discord connects outbound, subagent calls
@@ -187,6 +210,17 @@
   users.users.root.openssh.authorizedKeys.keys = [
     (builtins.readFile ./keys/deploy.pub)
   ];
+
+  # --- Sudo: allow openclaw to run nixos-rebuild ---
+  # The bot writes NixOS app modules and runs nixos-rebuild to deploy them.
+  # Only nixos-rebuild is allowed — nothing else.
+  security.sudo.extraRules = [{
+    users = [ "openclaw" ];
+    commands = [{
+      command = "/run/current-system/sw/bin/nixos-rebuild";
+      options = [ "NOPASSWD" ];
+    }];
+  }];
 
   # --- Locale & Timezone ---
   time.timeZone = "UTC";
