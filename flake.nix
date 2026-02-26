@@ -33,12 +33,13 @@
           ./disko-config.nix
           ./configuration.nix
           ./modules/tinker.nix
+          ./modules/credit-bot.nix
         ];
       };
 
       deploy = {
         nodes.tinker = {
-          hostname = "46.225.140.108";
+          hostname = "178.156.161.158";
           sshUser = "root";
           autoRollback = true;
           magicRollback = true;
