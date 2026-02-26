@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-logs — tail openclaw gateway logs
+# Usage: tinker-logs             # follow logs (journalctl -f)
+#        tinker-logs 100         # last 100 lines
+#        tinker-logs grep <pat>  # grep the logs
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VPS_IP="${TINKER_VPS_IP:-46.225.140.108}"
+SSH_KEY="$PROJECT_DIR/keys/deploy"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "error: SSH key not found at $SSH_KEY" >&2
+  exit 1
+fi
+
+ssh_cmd() {
+  ssh "${SSH_OPTS[@]}" "root@${VPS_IP}" "$@"
+}
+
+if [[ $# -eq 0 ]]; then
+  # Follow logs
+  ssh_cmd "journalctl -u openclaw-gateway -f --no-hostname"
+elif [[ "$1" == "grep" ]]; then
+  # Grep logs
+  if [[ $# -lt 2 ]]; then
+    echo "usage: tinker-logs grep <pattern>" >&2
+    exit 1
+  fi
+  shift
+  ssh_cmd "journalctl -u openclaw-gateway --no-pager --no-hostname | grep -i '$*'"
+elif [[ "$1" =~ ^[0-9]+$ ]]; then
+  # Last N lines
+  ssh_cmd "journalctl -u openclaw-gateway -n $1 --no-pager --no-hostname"
+else
+  echo "usage: tinker-logs             # follow logs" >&2
+  echo "       tinker-logs <N>         # last N lines" >&2
+  echo "       tinker-logs grep <pat>  # grep logs" >&2
+  exit 1
+fi

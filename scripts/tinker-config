@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-config — read/set openclaw config on the VPS
+# Usage: tinker-config                       # show current config
+#        tinker-config set <path> <value>    # set a config value
+#        tinker-config doctor                # run openclaw doctor
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VPS_IP="${TINKER_VPS_IP:-46.225.140.108}"
+SSH_KEY="$PROJECT_DIR/keys/deploy"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "error: SSH key not found at $SSH_KEY" >&2
+  exit 1
+fi
+
+ssh_cmd() {
+  ssh "${SSH_OPTS[@]}" "root@${VPS_IP}" "$@"
+}
+
+# Find the openclaw binary from the systemd service
+OPENCLAW_BIN='$(systemctl cat openclaw-gateway 2>/dev/null | grep "ExecStart=" | tail -1 | sed "s/.*ExecStart=//;s/ .*//")'
+
+if [[ $# -eq 0 ]]; then
+  # Show current config
+  ssh_cmd "cat /var/lib/openclaw/.openclaw/openclaw.json 2>/dev/null | jq . 2>/dev/null || cat /var/lib/openclaw/.openclaw/openclaw.json 2>/dev/null || echo 'no config found'"
+elif [[ "$1" == "set" ]]; then
+  if [[ $# -lt 3 ]]; then
+    echo "usage: tinker-config set <path> <value>" >&2
+    echo "example: tinker-config set gateway.port 3000" >&2
+    exit 1
+  fi
+  shift
+  ssh_cmd "HOME=/var/lib/openclaw $OPENCLAW_BIN config set $*"
+elif [[ "$1" == "doctor" ]]; then
+  ssh_cmd "HOME=/var/lib/openclaw $OPENCLAW_BIN doctor --fix" || ssh_cmd "HOME=/var/lib/openclaw $OPENCLAW_BIN doctor"
+else
+  echo "usage: tinker-config                       # show config" >&2
+  echo "       tinker-config set <path> <value>    # set config value" >&2
+  echo "       tinker-config doctor                # run openclaw doctor" >&2
+  exit 1
+fi

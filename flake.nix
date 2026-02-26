@@ -18,6 +18,8 @@
   outputs = { self, nixpkgs, openclaw, deploy-rs, disko, nixos-anywhere }:
     let
       system = "x86_64-linux";
+      devSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      forDevSystems = nixpkgs.lib.genAttrs devSystems;
     in
     {
       nixosConfigurations.tinker = nixpkgs.lib.nixosSystem {
@@ -53,5 +55,24 @@
       checks = builtins.mapAttrs
         (system: deployLib: deployLib.deployChecks self.deploy)
         deploy-rs.lib;
+
+      devShells = forDevSystems (devSystem:
+        let pkgs = nixpkgs.legacyPackages.${devSystem};
+        in {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              openssh
+              rsync
+              jq
+              curl
+              hcloud
+            ];
+            shellHook = ''
+              export PATH="$PWD/scripts:$PATH"
+              echo "tinker dev shell — run 'tinker-status' to check VPS"
+            '';
+          };
+        }
+      );
     };
 }

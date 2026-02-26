@@ -38,6 +38,10 @@ ppq.ai (OpenAI-compatible proxy, pay-per-query)
   server. The bot listens to messages in designated channels.
 - **NixOS** is the deployment target. The entire system is declared in a
   single flake. `nixos-rebuild switch` deploys everything.
+- **Caddy** serves the landing page (static files from /var/www/tinker/) on
+  tinker.builders. DNS: both `tinker.builders` and `*.tinker.builders` point
+  to the VPS IP (46.225.140.108). The landing page is deployed from `docs/`
+  via rsync, not GitHub Pages.
 
 ## How We Build This Project
 
@@ -174,10 +178,17 @@ open-builder/
 │   └── topup/
 │       └── SKILL.md          # Bitcoin Lightning topup skill
 ├── scripts/
-│   ├── topup.sh              # calls ppq.ai topup API
-│   ├── check-balance.sh      # calls ppq.ai balance API
-│   ├── deploy.sh             # nixos-rebuild + post-deploy config
-│   └── provision.sh          # Hetzner VPS provisioning via hcloud
+│   ├── tinker-ssh            # SSH into VPS
+│   ├── tinker-logs           # tail gateway logs
+│   ├── tinker-status         # quick health check
+│   ├── tinker-deploy         # deploy with safety checks
+│   ├── tinker-config         # read/set openclaw config
+│   ├── tinker-balance        # check ppq.ai balance
+│   ├── deploy.sh             # core deploy (rsync + remote nixos-rebuild)
+│   ├── check-balance.sh      # ppq.ai balance (runs on VPS)
+│   ├── topup.sh              # ppq.ai topup (runs on VPS)
+│   ├── provision.sh          # Hetzner VPS provisioning via hcloud
+│   └── teardown.sh           # destroy Hetzner VPS
 ├── config/
 │   └── openclaw.json         # reference config template
 ├── docs/
@@ -237,24 +248,18 @@ read it but don't modify it.
   hardware key prompt. Commits from agents use `-c commit.gpgsign=false`.
 - **No Co-Authored-By footers.** Keep commits clean per global config.
 
-## Useful Commands
+## Developer Commands
 
-```bash
-# deploy to VPS
-bash scripts/deploy.sh root@your-vps
+Enter the dev shell first: `nix develop` (provides all tools + scripts on PATH).
 
-# check gateway status
-ssh root@your-vps "systemctl status openclaw"
+| Command | Description |
+|---------|-------------|
+| `tinker-ssh` | SSH into the VPS (interactive or `tinker-ssh <cmd>`) |
+| `tinker-logs` | Tail gateway logs (`tinker-logs`, `tinker-logs 100`, `tinker-logs grep <pat>`) |
+| `tinker-status` | Quick health check — service state, uptime, memory, port, secrets, last log |
+| `tinker-deploy` | Deploy with safety checks — warns about uncommitted changes, confirms before running |
+| `tinker-config` | Read/set openclaw config (`tinker-config`, `tinker-config set <path> <val>`, `tinker-config doctor`) |
+| `tinker-balance` | Check ppq.ai credit balance via VPS |
 
-# watch logs
-ssh root@your-vps "journalctl -u openclaw -f"
-
-# check discord channel connection
-ssh root@your-vps "openclaw channels status --probe"
-
-# manually restart gateway
-ssh root@your-vps "openclaw gateway restart"
-
-# check ppq.ai balance
-ssh root@your-vps "bash /home/openclaw/scripts/check-balance.sh"
-```
+All commands use `keys/deploy` for SSH and default to VPS IP `46.225.140.108`.
+Override the IP with `TINKER_VPS_IP` env var.

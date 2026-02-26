@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-status — quick health check on the Tinker VPS
+# Usage: tinker-status
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VPS_IP="${TINKER_VPS_IP:-46.225.140.108}"
+SSH_KEY="$PROJECT_DIR/keys/deploy"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "error: SSH key not found at $SSH_KEY" >&2
+  exit 1
+fi
+
+ssh_cmd() {
+  ssh "${SSH_OPTS[@]}" "root@${VPS_IP}" "$@"
+}
+
+echo "tinker @ $VPS_IP"
+echo "---"
+
+# Service status + uptime
+status_output=$(ssh_cmd "bash -c '
+  state=\$(systemctl is-active openclaw-gateway 2>/dev/null || echo \"inactive\")
+  if [ \"\$state\" = \"active\" ]; then
+    since=\$(systemctl show openclaw-gateway --property=ActiveEnterTimestamp --value)
+    uptime_s=\$(( \$(date +%s) - \$(date -d \"\$since\" +%s) ))
+    h=\$(( uptime_s / 3600 ))
+    m=\$(( (uptime_s % 3600) / 60 ))
+    echo \"service: active (running) since \$since\"
+    echo \"uptime: \${h}h \${m}m\"
+  else
+    echo \"service: \$state\"
+  fi
+
+  # Memory
+  mem=\$(systemctl show openclaw-gateway --property=MemoryCurrent --value 2>/dev/null || echo \"unknown\")
+  if [ \"\$mem\" != \"unknown\" ] && [ \"\$mem\" != \"[not set]\" ] && [ \"\$mem\" -gt 0 ] 2>/dev/null; then
+    mem_mb=\$(( mem / 1048576 ))
+    echo \"memory: \${mem_mb}M\"
+  fi
+
+  # Port check
+  if ss -tlnp 2>/dev/null | grep -q \":3000 \"; then
+    echo \"port 3000: listening\"
+  else
+    echo \"port 3000: not listening\"
+  fi
+
+  # Secrets
+  if [ -f /run/secrets/openclaw.env ]; then
+    echo \"secrets: present\"
+  else
+    echo \"secrets: MISSING (/run/secrets/openclaw.env)\"
+  fi
+
+  # Last log line
+  last=\$(journalctl -u openclaw-gateway -n 1 --no-pager --no-hostname -o cat 2>/dev/null || echo \"(no logs)\")
+  echo \"last log: \$last\"
+'")
+
+echo "$status_output"

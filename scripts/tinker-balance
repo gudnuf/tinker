@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-balance — check ppq.ai credit balance
+# Usage: tinker-balance
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VPS_IP="${TINKER_VPS_IP:-46.225.140.108}"
+SSH_KEY="$PROJECT_DIR/keys/deploy"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "error: SSH key not found at $SSH_KEY" >&2
+  exit 1
+fi
+
+ssh "${SSH_OPTS[@]}" "root@${VPS_IP}" "bash /var/lib/openclaw/scripts/check-balance.sh 2>/dev/null || bash /home/openclaw/scripts/check-balance.sh"

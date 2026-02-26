@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-ssh — SSH into the Tinker VPS
+# Usage: tinker-ssh              # interactive shell
+#        tinker-ssh <command>    # run a command
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+VPS_IP="${TINKER_VPS_IP:-46.225.140.108}"
+SSH_KEY="$PROJECT_DIR/keys/deploy"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "error: SSH key not found at $SSH_KEY" >&2
+  echo "generate one: ssh-keygen -t ed25519 -f keys/deploy -C tinker-deploy" >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  exec ssh "${SSH_OPTS[@]}" "root@${VPS_IP}"
+else
+  exec ssh "${SSH_OPTS[@]}" "root@${VPS_IP}" "$@"
+fi

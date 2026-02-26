@@ -135,6 +135,21 @@
     '';
   };
 
+  # --- Landing Page (Caddy static files) ---
+  # Override the openclaw-nix reverse proxy virtualHost — the gateway
+  # only needs local access (Discord connects outbound, subagent calls
+  # are localhost). Serve the landing page on the main domain instead.
+  services.caddy.virtualHosts."tinker.builders" = lib.mkForce {
+    extraConfig = ''
+      root * /var/www/tinker
+      file_server
+    '';
+  };
+
+  systemd.tmpfiles.rules = [
+    "d /var/www/tinker 0755 root root -"
+  ];
+
   # --- Networking ---
   networking = {
     hostName = "tinker";
