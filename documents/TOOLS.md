@@ -115,14 +115,14 @@ formatting rules:
 
 ## scripts
 
-these live at /home/openclaw/scripts/ and are called via exec.
+these live at /home/openclaw/projects/tinker/scripts/ and are called via exec.
 
 ### check-balance.sh
 
 check the ppq.ai credit balance.
 
 ```bash
-bash /home/openclaw/scripts/check-balance.sh
+bash /home/openclaw/projects/tinker/scripts/check-balance.sh
 ```
 
 reads API key from /run/secrets/openclaw.env (sources the file).
@@ -140,7 +140,7 @@ when to call:
 generate a bitcoin lightning invoice for topping up credits.
 
 ```bash
-bash /home/openclaw/scripts/topup.sh [amount] [currency]
+bash /home/openclaw/projects/tinker/scripts/topup.sh [amount] [currency]
 ```
 
 - amount defaults to 10000, currency defaults to SATS

@@ -623,7 +623,7 @@ write the prompt to `/tmp/step-{N}-prompt.json`:
 
 ```json
 {
-  "model": "claude-sonnet-4.6",
+  "model": "openai/claude-sonnet-4.6",
   "max_tokens": 4096,
   "messages": [
     { "role": "system", "content": "{system message}" },
