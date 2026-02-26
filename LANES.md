@@ -1,7 +1,7 @@
 # Lane Prompts
 
-Launch these in separate superset sessions. Each agent works in the same
-worktree: `~/.superset/worktrees/open-builder/william`
+Launch these in separate tmux panes. All agents work in the project directory:
+`~/.superset/projects/open-builder`
 
 ---
 
