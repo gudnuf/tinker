@@ -106,6 +106,35 @@
       CapabilityBoundingSet = lib.mkForce [ "" ];
       SystemCallFilter = lib.mkForce [ "" ];
     };
+    # Sync custom Tinker documents into the OpenClaw workspace AFTER startup.
+    # openclaw regenerates workspace defaults (AGENTS.md, TOOLS.md, SOUL.md,
+    # BOOTSTRAP.md) on every service start, overwriting anything placed there
+    # by activation scripts. This postStart waits for init to finish, then
+    # overwrites the defaults with our custom phase logic and personality.
+    postStart = ''
+      WORKSPACE="/var/lib/openclaw/.openclaw/workspace"
+      DEST="/home/openclaw/projects/tinker"
+
+      # Wait for openclaw to create workspace files (up to 30s)
+      for i in $(seq 1 30); do
+        if [ -f "$WORKSPACE/AGENTS.md" ]; then
+          break
+        fi
+        sleep 1
+      done
+      # Extra delay to ensure openclaw has finished writing defaults
+      sleep 5
+
+      for doc in AGENTS.md SOUL.md TOOLS.md; do
+        if [ -f "$DEST/documents/$doc" ]; then
+          cp "$DEST/documents/$doc" "$WORKSPACE/$doc"
+          chmod 600 "$WORKSPACE/$doc"
+        fi
+      done
+      # Remove BOOTSTRAP.md — triggers onboarding instead of custom behavior
+      rm -f "$WORKSPACE/BOOTSTRAP.md"
+      chown -R openclaw:openclaw "$WORKSPACE"
+    '';
     # Set HOME so openclaw finds $HOME/.openclaw/openclaw.json
     environment.HOME = "/var/lib/openclaw";
     # Seed openclaw config before gateway starts (only if missing)
