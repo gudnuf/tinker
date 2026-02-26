@@ -31,5 +31,24 @@ in
 
     # Ensure openclaw owns everything
     chown -R openclaw:openclaw "$DEST"
+
+    # --- Wire documents into the OpenClaw workspace ---
+    # OpenClaw reads AGENTS.md, SOUL.md, TOOLS.md from its workspace directory
+    # (~/.openclaw/workspace/). By default this contains generic templates.
+    # Overwrite them with our custom documents so the agent gets the Tinker
+    # personality and phase logic.
+    WORKSPACE="/var/lib/openclaw/.openclaw/workspace"
+    if [ -d "$WORKSPACE" ]; then
+      for doc in AGENTS.md SOUL.md TOOLS.md; do
+        if [ -f "$DEST/documents/$doc" ]; then
+          cp "$DEST/documents/$doc" "$WORKSPACE/$doc"
+          chmod 600 "$WORKSPACE/$doc"
+        fi
+      done
+      # Remove BOOTSTRAP.md if present — it triggers the onboarding flow
+      # instead of using our custom agent behavior.
+      rm -f "$WORKSPACE/BOOTSTRAP.md"
+      chown -R openclaw:openclaw "$WORKSPACE"
+    fi
   '';
 }
