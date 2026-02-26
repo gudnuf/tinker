@@ -29,12 +29,12 @@
     # It's injected at runtime via EnvironmentFile (see workaround below).
     extraGatewayConfig = {
       models = {
-        provider = "ppq";
-        type = "openai";
+        provider = "openai";
+        api = "openai-completions";
         baseUrl = "https://api.ppq.ai";
         models = [
           {
-            id = "claude-sonnet-4.6";
+            id = "openai/claude-sonnet-4.6";
             name = "Claude Sonnet 4.6";
             contextWindow = 200000;
             maxTokens = 16384;
@@ -108,17 +108,22 @@
           "auth": { "mode": "token" }
         },
         "models": {
+          "default": "openai/claude-sonnet-4.6",
           "providers": {
-            "ppq": {
+            "openai": {
+              "api": "openai-completions",
               "baseUrl": "https://api.ppq.ai",
               "models": [{
-                "id": "claude-sonnet-4.6",
+                "id": "openai/claude-sonnet-4.6",
                 "name": "Claude Sonnet 4.6",
                 "contextWindow": 200000,
                 "maxTokens": 16384
               }]
             }
           }
+        },
+        "agent": {
+          "model": "openai/claude-sonnet-4.6"
         },
         "channels": {
           "discord": { "enabled": true }
@@ -127,7 +132,8 @@
           "entries": {
             "discord": { "enabled": true }
           }
-        }
+        },
+        "groupPolicy": "open"
       }
       OCEOF
         chmod 600 /var/lib/openclaw/.openclaw/openclaw.json

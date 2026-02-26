@@ -9,21 +9,21 @@ Last updated: 2026-02-26
 - **Tagline:** "for the tinkerin' builders"
 - **Roadmap:** v1 Discord bot (join, get started) → v2 Showcase page (gallery of community builds)
 
-## Phase: DEPLOYED — BOT ONLINE
+## Phase: DEPLOYED — MIGRATING TO US
 
-Gateway running on VPS (46.225.140.108). Discord bot connected (@Tinker).
-Secrets provisioned. Landing page v2 committed. ppq.ai balance is $0 — needs
-topup before the bot can respond to messages.
+Gateway deployed but ppq.ai geo-blocks EU requests (403 from Nürnberg).
+Migrating VPS from Hetzner Germany (nbg1) to Hetzner US (ash/Ashburn).
+Discord bot connected. ppq.ai balance is $0 — needs topup after migration.
 
 ## Active Lanes
 
 | Lane | Task | Status |
 |------|------|--------|
 | 1: meta | Strategic coordination (this session) | active |
-| 2: lane1 | Round design brainstorm → produced ROUND-DESIGN.md | done, idle |
-| 3: lane2 | ppq.ai API spike → found bugs, fixing scripts | fixing scripts |
-| 4: lane3 | Landing page v2 rewrite | just started |
-| 5: lane4 | VPS boot debugging (GRUB/networking) | active, 8% context — near end |
+| 2: lane1 | DX tooling, management scripts, Caddy landing page | done |
+| 3: lane2 | ppq.ai diagnosis — found geo-block, proposed US migration | done |
+| 4: lane3 | **VPS migration: Germany → US (Ashburn)** | active |
+| 5: lane4 | AGENTS.md v2 rewrite | done, committed |
 
 ## Completed Lanes (Genesis)
 
