@@ -12,3 +12,6 @@ result-*
 *.pem
 secrets/
 secrets.nix
+
+# Infra env files (hetzner.env.example is safe to commit)
+infra/*.env

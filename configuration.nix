@@ -104,17 +104,11 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   # --- Boot & Filesystem ---
-  # Standard VPS defaults. Replace with actual hardware-configuration.nix
-  # generated on the VPS via `nixos-generate-config`.
-  boot.loader.grub = {
-    enable = true;
-    device = "/dev/vda"; # TODO: adjust to actual VPS disk
-  };
-
-  fileSystems."/" = {
-    device = "/dev/vda1"; # TODO: adjust to actual VPS partition
-    fsType = "ext4";
-  };
+  # Disk layout and boot configuration are managed by disko (see disko-config.nix).
+  # nixos-anywhere uses disko during provisioning to partition, format, and mount.
+  # Do NOT add manual boot.loader or fileSystems entries here.
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
 
   # --- System ---
   system.stateVersion = "24.11";
