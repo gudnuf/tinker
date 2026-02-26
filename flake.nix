@@ -1,5 +1,5 @@
 {
-  description = "open-builder — collaborative Discord bot powered by OpenClaw + ppq.ai";
+  description = "tinker — collaborative Discord bot powered by OpenClaw + ppq.ai";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -20,7 +20,7 @@
       system = "x86_64-linux";
     in
     {
-      nixosConfigurations.open-builder = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.tinker = nixpkgs.lib.nixosSystem {
         modules = [
           openclaw.nixosModules.default
           disko.nixosModules.disko
@@ -30,21 +30,22 @@
           }
           ./disko-config.nix
           ./configuration.nix
-          ./modules/open-builder.nix
+          ./modules/tinker.nix
         ];
       };
 
       deploy = {
-        nodes.open-builder = {
+        nodes.tinker = {
           hostname = "46.225.140.108";
           sshUser = "root";
           autoRollback = true;
           magicRollback = true;
+          remoteBuild = true;
 
           profiles.system = {
             user = "root";
             path = deploy-rs.lib.${system}.activate.nixos
-              self.nixosConfigurations.open-builder;
+              self.nixosConfigurations.tinker;
           };
         };
       };

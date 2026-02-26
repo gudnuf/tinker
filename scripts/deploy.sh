@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# deploy.sh — deploy open-builder via deploy-rs and verify
+# deploy.sh — deploy tinker via deploy-rs and verify
 # Dependencies: deploy-rs (deploy), ssh, curl, jq (on remote)
 # Usage: deploy.sh [host]
 #   host defaults to 46.225.140.108
@@ -10,8 +10,8 @@ HOST="${1:-46.225.140.108}"
 SSH_KEY="keys/deploy"
 SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no"
 
-echo "deploying open-builder to $HOST..."
-deploy .#open-builder
+echo "deploying tinker to $HOST..."
+deploy .#tinker
 
 echo ""
 echo "deploy complete. verifying..."

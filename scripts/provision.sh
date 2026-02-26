@@ -9,16 +9,16 @@ set -euo pipefail
 # Usage: provision.sh [location]
 #   location defaults to nbg1 (Nuremberg)
 #
-# This script is idempotent: if a server named "open-builder" already exists,
+# This script is idempotent: if a server named "tinker" already exists,
 # it prints the IP and exits without creating a duplicate.
 #
 # Designed to run from macOS — all NixOS work happens over SSH.
 
 LOCATION="${1:-nbg1}"
-SERVER_NAME="open-builder"
+SERVER_NAME="tinker"
 SERVER_TYPE="cpx32"
 IMAGE="ubuntu-24.04"
-SSH_KEY_NAME="open-builder-deploy"
+SSH_KEY_NAME="tinker-deploy"
 SSH_PUB_KEY="keys/deploy.pub"
 
 # --- Preflight checks ---
@@ -44,7 +44,7 @@ fi
 
 if [ ! -f "$SSH_PUB_KEY" ]; then
   echo "error: SSH public key not found at $SSH_PUB_KEY"
-  echo "generate one: ssh-keygen -t ed25519 -f keys/deploy -C open-builder-deploy"
+  echo "generate one: ssh-keygen -t ed25519 -f keys/deploy -C tinker-deploy"
   exit 1
 fi
 
@@ -115,7 +115,7 @@ echo "this will partition the disk, install NixOS, and reboot the server"
 echo ""
 
 nixos-anywhere \
-  --flake ".#open-builder" \
+  --flake ".#tinker" \
   -i keys/deploy \
   --ssh-option "-o StrictHostKeyChecking=no" \
   --ssh-option "-o UserKnownHostsFile=/dev/null" \

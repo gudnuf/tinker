@@ -72,13 +72,15 @@
   #   - Owned by root:root, mode 0600
   #   - NOT stored in the repo or Nix store
   # =========================================================================
-  systemd.services.openclaw-gateway.serviceConfig.EnvironmentFile = [
-    "/run/secrets/openclaw.env"
-  ];
+  systemd.services.openclaw-gateway.serviceConfig = {
+    EnvironmentFile = [ "/run/secrets/openclaw.env" ];
+    # openclaw calls os.networkInterfaces() at startup which requires AF_NETLINK
+    RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" "AF_NETLINK" ];
+  };
 
   # --- Networking ---
   networking = {
-    hostName = "open-builder";
+    hostName = "tinker";
     useNetworkd = true;
     firewall = {
       enable = true;

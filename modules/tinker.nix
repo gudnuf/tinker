@@ -11,9 +11,9 @@ in
   # after the openclaw user/group have been created.
   #
   # Source files come from the Nix store (built into the system closure).
-  # Target: /home/openclaw/projects/open-builder/
-  system.activationScripts.open-builder-content = lib.stringAfter [ "users" "groups" ] ''
-    DEST="/home/openclaw/projects/open-builder"
+  # Target: /home/openclaw/projects/tinker/
+  system.activationScripts.tinker-content = lib.stringAfter [ "users" "groups" ] ''
+    DEST="/home/openclaw/projects/tinker"
     mkdir -p "$DEST"
 
     for dir in documents skills scripts; do
