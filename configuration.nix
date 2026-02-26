@@ -72,10 +72,67 @@
   #   - Owned by root:root, mode 0600
   #   - NOT stored in the repo or Nix store
   # =========================================================================
-  systemd.services.openclaw-gateway.serviceConfig = {
-    EnvironmentFile = [ "/run/secrets/openclaw.env" ];
-    # openclaw calls os.networkInterfaces() at startup which requires AF_NETLINK
-    RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" "AF_NETLINK" ];
+  systemd.services.openclaw-gateway = {
+    serviceConfig = {
+      EnvironmentFile = [ "/run/secrets/openclaw.env" ];
+      # openclaw calls os.networkInterfaces() at startup which requires AF_NETLINK
+      RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" "AF_NETLINK" ];
+      # openclaw-nix passes --config but current openclaw doesn't support it.
+      # Override ExecStart: clear the module's line, set our own without --config.
+      ExecStart = [
+        ""  # clear upstream ExecStart
+        "${config.services.openclaw.package}/bin/openclaw gateway run --allow-unconfigured --port 3000 --bind custom --auth token"
+      ];
+      # Disable sandbox: openclaw crashes under hardened systemd settings.
+      # TODO: re-tighten once gateway is stable.
+      ProtectSystem = lib.mkForce false;
+      ProtectHome = lib.mkForce false;
+      PrivateTmp = lib.mkForce false;
+      PrivateDevices = lib.mkForce false;
+      RestrictNamespaces = lib.mkForce false;
+      CapabilityBoundingSet = lib.mkForce [ "" ];
+      SystemCallFilter = lib.mkForce [ "" ];
+    };
+    # Set HOME so openclaw finds $HOME/.openclaw/openclaw.json
+    environment.HOME = "/var/lib/openclaw";
+    # Seed openclaw config before gateway starts (only if missing)
+    preStart = lib.mkAfter ''
+      mkdir -p /var/lib/openclaw/.openclaw
+      if [ ! -f /var/lib/openclaw/.openclaw/openclaw.json ]; then
+        cat > /var/lib/openclaw/.openclaw/openclaw.json << 'OCEOF'
+      {
+        "gateway": {
+          "mode": "local",
+          "port": 3000,
+          "bind": "custom",
+          "auth": { "mode": "token" }
+        },
+        "models": {
+          "providers": {
+            "ppq": {
+              "baseUrl": "https://api.ppq.ai",
+              "models": [{
+                "id": "claude-sonnet-4.6",
+                "name": "Claude Sonnet 4.6",
+                "contextWindow": 200000,
+                "maxTokens": 16384
+              }]
+            }
+          }
+        },
+        "channels": {
+          "discord": { "enabled": true }
+        },
+        "plugins": {
+          "entries": {
+            "discord": { "enabled": true }
+          }
+        }
+      }
+      OCEOF
+        chmod 600 /var/lib/openclaw/.openclaw/openclaw.json
+      fi
+    '';
   };
 
   # --- Networking ---
