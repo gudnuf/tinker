@@ -4,11 +4,11 @@ set -euo pipefail
 # deploy.sh — deploy tinker to VPS via rsync + remote nixos-rebuild
 # Dependencies: rsync, ssh, nix (for building the system closure)
 # Usage: deploy.sh [host]
-#   host defaults to TINKER_VPS_IP or 46.225.140.108
+#   host defaults to TINKER_VPS_IP or 178.156.161.158
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOST="${1:-${TINKER_VPS_IP:-46.225.140.108}}"
+HOST="${1:-${TINKER_VPS_IP:-178.156.161.158}}"
 SSH_KEY="$PROJECT_DIR/keys/deploy"
 SSH_OPTS="-i $SSH_KEY -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
