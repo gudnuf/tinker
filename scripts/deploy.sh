@@ -34,6 +34,9 @@ rsync -az --delete \
   -e "ssh $SSH_OPTS" \
   "$PROJECT_DIR/" "root@${HOST}:/srv/tinker/"
 
+echo "fixing ownership..."
+ssh $SSH_OPTS "root@${HOST}" "chown -R tinker:users /srv/tinker && chmod o+rx /srv/tinker /srv/tinker/docs && chmod -R o+r /srv/tinker/docs/"
+
 echo "rebuilding on VPS..."
 ssh $SSH_OPTS "root@${HOST}" "cd /srv/tinker && nixos-rebuild switch --flake .#tinker"
 
