@@ -252,7 +252,7 @@ after subagents return:
 1. review what they wrote (read key files)
 2. batch commit:
    ```bash
-   cd /srv/tinker && git -c commit.gpgsign=false add -A && \
+   cd /etc/nixos && git -c commit.gpgsign=false add -A && \
      git -c commit.gpgsign=false commit -m "tinker: {name} — steps X-Y"
    ```
 3. post progress:
@@ -287,7 +287,7 @@ every deploy follows this exact sequence.
 
 #### 1. write the nix app module
 
-create `/srv/tinker/modules/apps/{name}.nix`.
+create `/etc/nixos/modules/apps/{name}.nix`.
 
 **for server apps** (Node.js, Python, etc.):
 
@@ -347,7 +347,7 @@ pick the next available one. static sites don't need a port.
 #### 2. commit (required — nix flakes only see git-tracked files)
 
 ```bash
-cd /srv/tinker
+cd /etc/nixos
 git -c commit.gpgsign=false add -A
 git -c commit.gpgsign=false commit -m "tinker: {name} — deploy"
 ```
@@ -355,7 +355,7 @@ git -c commit.gpgsign=false commit -m "tinker: {name} — deploy"
 #### 3. rebuild
 
 ```bash
-sudo nixos-rebuild switch --flake /srv/tinker#tinker
+sudo nixos-rebuild switch --flake /etc/nixos#tinker
 ```
 
 wait 3-5 seconds for the app to start.
@@ -408,7 +408,7 @@ iteration loop:
 4. **execute** — dispatch Agent calls, 1-3 steps per iteration.
 5. **commit**:
    ```bash
-   cd /srv/tinker && git -c commit.gpgsign=false add -A && \
+   cd /etc/nixos && git -c commit.gpgsign=false add -A && \
      git -c commit.gpgsign=false commit -m "tinker: {name} — iteration: {summary}"
    ```
 6. **redeploy**: rebuild + screenshot.
@@ -507,7 +507,7 @@ wrong phase? "we're in {phase} right now. {what needs to happen first}."
 ## security
 
 - all project work in `/srv/tinker/projects/{name}/`
-- nix modules in `/srv/tinker/modules/apps/`
+- nix modules in `/etc/nixos/modules/apps/`
 - only sudo commands: `nixos-rebuild switch` and `nixos-rebuild switch --rollback`
 - never run destructive commands outside /srv/tinker/projects/
 - never read/write files outside /srv/tinker/ unless needed for a build dep lookup
@@ -538,18 +538,25 @@ wrong phase? "we're in {phase} right now. {what needs to happen first}."
 ## paths
 
 ```
-/srv/tinker/                    # home dir, git repo root
-├── .claude/CLAUDE.md           # this file
+/etc/nixos/                     # nixos config (cloned from github.com/gudnuf/tinker)
+├── flake.nix
+├── configuration.nix
 ├── modules/apps/               # nix app modules (auto-imported)
-├── projects/{name}/            # app source code
 ├── docs/                       # landing page
+└── .claude/CLAUDE.md           # this file
+
+/srv/tinker/                    # tinker user home dir
+├── projects/{name}/            # app source code (workers write here)
 └── state/                      # round state (future)
 ```
 
-flake is at `/srv/tinker/flake.nix`. rebuild command:
+rebuild command:
 ```bash
-sudo nixos-rebuild switch --flake /srv/tinker#tinker
+cd /etc/nixos && sudo nixos-rebuild switch --flake .#tinker
 ```
+
+app code goes in `/srv/tinker/projects/`. nix modules go in `/etc/nixos/modules/apps/`.
+commits for deploy go in `/etc/nixos/` (the flake repo).
 
 ---
 
@@ -608,7 +615,7 @@ you are a meta-agent. this means:
 each round creates a self-contained project:
 ```
 /srv/tinker/projects/{name}/    # app source code (workers write here)
-/srv/tinker/modules/apps/{name}.nix  # nix deploy module
+/etc/nixos/modules/apps/{name}.nix  # nix deploy module
 https://{name}.tinker.builders  # live URL
 ```
 workers operate inside the project directory. you operate outside it.

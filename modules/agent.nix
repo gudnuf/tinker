@@ -82,12 +82,12 @@ ZEOF
     chmod 644 "$ZSHRC"
   '';
 
-  # --- Sudoers: Passwordless nixos-rebuild ---
+  # --- Sudoers: Passwordless nixos-rebuild + git in /etc/nixos ---
   security.sudo.extraRules = [{
     users = [ "tinker" ];
-    commands = [{
-      command = "/run/current-system/sw/bin/nixos-rebuild";
-      options = [ "NOPASSWD" ];
-    }];
+    commands = [
+      { command = "/run/current-system/sw/bin/nixos-rebuild"; options = [ "NOPASSWD" ]; }
+      { command = "/run/current-system/sw/bin/git"; options = [ "NOPASSWD" ]; }
+    ];
   }];
 }
