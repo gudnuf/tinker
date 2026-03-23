@@ -28,6 +28,8 @@ rsync -az --delete \
   --exclude='.claude/channels/' \
   --exclude='.claude/skills/' \
   --exclude='.claude/plugins/' \
+  --exclude='.zshrc' \
+  --exclude='.npm-global/' \
   --filter='protect modules/apps/*.nix' \
   -e "ssh $SSH_OPTS" \
   "$PROJECT_DIR/" "root@${HOST}:/srv/tinker/"
