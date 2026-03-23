@@ -59,6 +59,10 @@
 EOF
       chown tinker:users /srv/tinker/.claude/settings.json
     fi
+
+    # Symlink metacraft skills from repo into Claude Code skills dir
+    install -d -o tinker -g users /srv/tinker/.claude/skills
+    ln -sfn /etc/nixos/skills/metacraft /srv/tinker/.claude/skills/metacraft
   '';
 
   # --- Tmux Auto-Attach on SSH Login ---
@@ -66,7 +70,7 @@ EOF
     # Install tmux auto-attach zshrc for tinker user
     ZSHRC="/srv/tinker/.zshrc"
     cat > "$ZSHRC" << 'ZEOF'
-export PATH="/srv/tinker/scripts:$PATH"
+export PATH="$HOME/.npm-global/bin:/srv/tinker/scripts:$PATH"
 
 # Source secrets if available
 if [ -f /run/secrets/tinker.env ]; then
