@@ -66,6 +66,13 @@ EOF
     # Install tmux auto-attach zshrc for tinker user
     ZSHRC="/srv/tinker/.zshrc"
     cat > "$ZSHRC" << 'ZEOF'
+export PATH="/srv/tinker/scripts:$PATH"
+
+# Source secrets if available
+if [ -f /run/secrets/tinker.env ]; then
+  set -a; source /run/secrets/tinker.env; set +a
+fi
+
 # Auto-attach to tmux session on SSH login
 if [ -n "$SSH_CONNECTION" ] && [ -z "$TMUX" ]; then
   tmux new-session -A -s tinker
