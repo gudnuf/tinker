@@ -14,6 +14,11 @@
 
   programs.zsh.enable = true;
 
+  # Claude Code has an unfree license
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+    "claude-code"
+  ];
+
   # --- System Packages ---
   environment.systemPackages = with pkgs; [
     claude-code
