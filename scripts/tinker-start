@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# tinker-start — bootstrap the keeper session
+#
+# Run this after a reboot, crash, or fresh deploy to get the bot online.
+# Idempotent: kills any existing session and starts fresh.
+#
+# Usage: tinker-start
+#
+# Channel IDs (hardcoded — these are the Tinker Discord server channels):
+BUILD_CHANNEL="1485450330404684017"
+SHOWCASE_CHANNEL="1485450485459583036"
+
+echo "=== tinker bootstrap ==="
+
+# 1. Pull latest config
+echo "pulling latest config..."
+sudo git -C /etc/nixos pull 2>/dev/null || echo "git pull failed (offline?), continuing with current config"
+
+# 2. Rebuild if config changed
+echo "checking for config changes..."
+CURRENT=$(readlink /run/current-system)
+BUILD_RESULT=$(sudo nixos-rebuild build --flake /etc/nixos#tinker 2>&1 | tail -1)
+if [ "$CURRENT" != "$BUILD_RESULT" ] && [ -n "$BUILD_RESULT" ]; then
+  echo "config changed, rebuilding..."
+  sudo nixos-rebuild switch --flake /etc/nixos#tinker 2>&1 | tail -3
+else
+  echo "config up to date."
+fi
+
+# 3. Check Claude Code version
+CLAUDE_VERSION=$(claude --version 2>/dev/null || echo "not found")
+echo "claude: $CLAUDE_VERSION"
+
+# 4. Check auth
+if [ ! -f "$HOME/.claude/.credentials.json" ]; then
+  echo ""
+  echo "WARNING: no auth credentials found."
+  echo "run 'claude' first and log in, then re-run tinker-start."
+  exit 1
+fi
+
+# 5. Check Discord bot token
+if [ ! -f "$HOME/.claude/channels/discord/.env" ]; then
+  echo ""
+  echo "WARNING: no discord bot token found."
+  echo "run 'claude' first, then '/discord:configure <token>', then re-run tinker-start."
+  exit 1
+fi
+
+# 6. Check skills
+if [ -L "$HOME/.claude/skills/metacraft" ]; then
+  echo "skills: metacraft linked"
+else
+  echo "WARNING: metacraft skills not linked. run: sudo nixos-rebuild switch --flake /etc/nixos#tinker"
+fi
+
+# 7. Kill any existing keeper session
+echo "cleaning up old sessions..."
+pkill -u "$(whoami)" claude 2>/dev/null || true
+pkill -u "$(whoami)" bun 2>/dev/null || true
+tmux kill-session -t tinker 2>/dev/null || true
+sleep 2
+
+# 8. Launch keeper in tmux
+echo "launching keeper..."
+tmux new-session -d -s tinker -c /srv/tinker
+tmux send-keys -t tinker "launch-agent keeper:tinker $BUILD_CHANNEL $SHOWCASE_CHANNEL" Enter
+
+# 9. Wait and verify
+sleep 12
+if pgrep -u "$(whoami)" claude > /dev/null; then
+  echo ""
+  echo "=== keeper is online ==="
+  echo "tmux attach -t tinker  to see the session"
+else
+  echo ""
+  echo "=== keeper failed to start ==="
+  echo "check: tmux attach -t tinker"
+fi
