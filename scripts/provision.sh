@@ -7,16 +7,16 @@ set -euo pipefail
 # Environment: HCLOUD_TOKEN must be set
 #
 # Usage: provision.sh [location]
-#   location defaults to nbg1 (Nuremberg)
+#   location defaults to ash (Ashburn, VA)
 #
 # This script is idempotent: if a server named "tinker" already exists,
 # it prints the IP and exits without creating a duplicate.
 #
 # Designed to run from macOS — all NixOS work happens over SSH.
 
-LOCATION="${1:-nbg1}"
+LOCATION="${1:-ash}"
 SERVER_NAME="tinker"
-SERVER_TYPE="cpx32"
+SERVER_TYPE="cpx31"
 IMAGE="ubuntu-24.04"
 SSH_KEY_NAME="tinker-deploy"
 SSH_PUB_KEY="keys/deploy.pub"
@@ -128,12 +128,12 @@ echo "Server IP: $SERVER_IP"
 echo "======================================"
 echo ""
 echo "Next steps:"
-echo "  1. Create /run/secrets/openclaw.env on the VPS:"
-echo "     ssh -i keys/deploy root@${SERVER_IP} 'mkdir -p /run/secrets && cat > /run/secrets/openclaw.env << EOF"
-echo "     OPENAI_API_KEY=<your ppq.ai API key>"
+echo "  1. Create /run/secrets/tinker.env on the VPS:"
+echo "     ssh -i keys/deploy root@${SERVER_IP} 'mkdir -p /run/secrets && cat > /run/secrets/tinker.env << EOF"
+echo "     ANTHROPIC_API_KEY=<your Anthropic API key>"
 echo "     DISCORD_BOT_TOKEN=<your Discord bot token>"
 echo "     EOF'"
-echo "     ssh -i keys/deploy root@${SERVER_IP} 'chmod 600 /run/secrets/openclaw.env'"
+echo "     ssh -i keys/deploy root@${SERVER_IP} 'chmod 600 /run/secrets/tinker.env'"
 echo ""
 echo "  2. Deploy the full config:"
-echo "     bash scripts/deploy.sh $SERVER_IP"
+echo "     TINKER_VPS_IP=$SERVER_IP bash scripts/deploy.sh"
