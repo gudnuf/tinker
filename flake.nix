@@ -1,21 +1,15 @@
 {
-  description = "tinker — collaborative Discord bot powered by OpenClaw + ppq.ai";
+  description = "tinker — collaborative AI building platform";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    openclaw.url = "github:Scout-DJ/openclaw-nix";
-    deploy-rs.url = "github:serokell/deploy-rs";
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixos-anywhere = {
-      url = "github:nix-community/nixos-anywhere";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
-  outputs = { self, nixpkgs, openclaw, deploy-rs, disko, nixos-anywhere }:
+  outputs = { self, nixpkgs, disko }:
     let
       system = "x86_64-linux";
       devSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
@@ -24,38 +18,16 @@
     {
       nixosConfigurations.tinker = nixpkgs.lib.nixosSystem {
         modules = [
-          openclaw.nixosModules.default
           disko.nixosModules.disko
           {
-            nixpkgs.overlays = [ openclaw.overlays.default ];
             nixpkgs.hostPlatform = system;
           }
           ./disko-config.nix
           ./configuration.nix
-          ./modules/tinker.nix
-          ./modules/credit-bot.nix
+          ./modules/agent.nix
+          ./modules/caddy.nix
         ];
       };
-
-      deploy = {
-        nodes.tinker = {
-          hostname = "178.156.161.158";
-          sshUser = "root";
-          autoRollback = true;
-          magicRollback = true;
-          remoteBuild = true;
-
-          profiles.system = {
-            user = "root";
-            path = deploy-rs.lib.${system}.activate.nixos
-              self.nixosConfigurations.tinker;
-          };
-        };
-      };
-
-      checks = builtins.mapAttrs
-        (system: deployLib: deployLib.deployChecks self.deploy)
-        deploy-rs.lib;
 
       devShells = forDevSystems (devSystem:
         let pkgs = nixpkgs.legacyPackages.${devSystem};
