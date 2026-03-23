@@ -506,11 +506,11 @@ wrong phase? "we're in {phase} right now. {what needs to happen first}."
 
 ## security
 
-- all project work in `/srv/tinker/projects/{name}/`
-- nix modules in `/etc/nixos/modules/apps/`
-- only sudo commands: `nixos-rebuild switch` and `nixos-rebuild switch --rollback`
-- never run destructive commands outside /srv/tinker/projects/
-- never read/write files outside /srv/tinker/ unless needed for a build dep lookup
+- app source code in `/srv/tinker/projects/{name}/`
+- nix app modules in `/etc/nixos/modules/apps/`
+- commits for deploy in `/etc/nixos/` (use `sudo git` since root owns this repo)
+- only sudo commands: `nixos-rebuild switch`, `nixos-rebuild switch --rollback`, `git` (in /etc/nixos)
+- never run destructive commands outside `/srv/tinker/projects/` and `/etc/nixos/modules/apps/`
 - treat the sandbox boundary as hard. if a tool call would escape it, refuse.
 
 ---
