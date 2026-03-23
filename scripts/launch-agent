@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# launch-agent <agent-name> [discord-channel-id ...]
+#
+# Sets up Discord state dir (if channel IDs given), sources API keys,
+# and launches Claude Code with the appropriate --channels flags.
+#
+# Examples:
+#   launch-agent keeper:tinker 123456789 987654321
+#   launch-agent worker:step-3
+
+AGENT_NAME="${1:?Usage: launch-agent <agent-name> [discord-channel-id ...]}"
+shift
+DISCORD_CHANNELS=("${@}")
+
+CHANNELS_DIR="$HOME/.claude/channels"
+DISCORD_DIR="$CHANNELS_DIR/discord"
+AGENT_DISCORD_DIR="$CHANNELS_DIR/discord-${AGENT_NAME//:/-}"
+
+# --- Source secrets (API keys) ---
+if [ -f /run/secrets/tinker.env ]; then
+  set -a
+  source /run/secrets/tinker.env
+  set +a
+fi
+
+CLAUDE_ARGS=(--dangerously-skip-permissions)
+
+# --- Discord setup (only if channel IDs provided) ---
+if [ ${#DISCORD_CHANNELS[@]} -gt 0 ]; then
+  mkdir -p "$AGENT_DISCORD_DIR"
+
+  # Copy bot token from default Discord state dir
+  if [ -f "$DISCORD_DIR/.env" ]; then
+    cp "$DISCORD_DIR/.env" "$AGENT_DISCORD_DIR/.env"
+  else
+    echo "error: no bot token found at $DISCORD_DIR/.env"
+    echo "run /discord:configure <token> in a Claude Code session first"
+    exit 1
+  fi
+
+  # Build access.json with specified channels
+  GROUPS="{"
+  for i in "${!DISCORD_CHANNELS[@]}"; do
+    [ "$i" -gt 0 ] && GROUPS+=","
+    GROUPS+="\"${DISCORD_CHANNELS[$i]}\": {\"requireMention\": false, \"allowFrom\": []}"
+  done
+  GROUPS+="}"
+
+  cat > "$AGENT_DISCORD_DIR/access.json" << EOF
+{
+  "dm": {"policy": "allowlist", "allowlist": []},
+  "groups": $GROUPS
+}
+EOF
+
+  export DISCORD_STATE_DIR="$AGENT_DISCORD_DIR"
+  CLAUDE_ARGS+=(--channels "plugin:discord@claude-plugins-official")
+fi
+
+echo "launching $AGENT_NAME..."
+exec claude "${CLAUDE_ARGS[@]}"
