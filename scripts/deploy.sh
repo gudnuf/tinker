@@ -35,10 +35,13 @@ rsync -az --delete \
   "$PROJECT_DIR/" "root@${HOST}:/srv/tinker/"
 
 echo "fixing ownership..."
-ssh $SSH_OPTS "root@${HOST}" "chown -R tinker:users /srv/tinker && chmod o+rx /srv/tinker /srv/tinker/docs && chmod -R o+r /srv/tinker/docs/"
+ssh $SSH_OPTS "root@${HOST}" "chown -R tinker:users /srv/tinker"
 
 echo "rebuilding on VPS..."
 ssh $SSH_OPTS "root@${HOST}" "cd /srv/tinker && nixos-rebuild switch --flake .#tinker"
+
+echo "fixing web permissions..."
+ssh $SSH_OPTS "root@${HOST}" "chmod o+rx /srv/tinker /srv/tinker/docs && chmod -R o+r /srv/tinker/docs/"
 
 echo ""
 echo "deploy complete. verifying..."
