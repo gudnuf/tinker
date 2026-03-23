@@ -51,9 +51,9 @@
       chown -R tinker:users /srv/tinker/.git
     fi
 
-    # Write Claude Code settings (only if file doesn't exist)
-    install -d -o tinker -g users /srv/tinker/.claude
-    if [ ! -f /srv/tinker/.claude/settings.json ]; then
+    # Claude Code settings — only seed on first deploy, never touch again
+    if [ ! -d /srv/tinker/.claude ]; then
+      install -d -o tinker -g users /srv/tinker/.claude
       cat > /srv/tinker/.claude/settings.json << 'EOF'
 {"enabledPlugins":{"discord@claude-plugins-official":true}}
 EOF
